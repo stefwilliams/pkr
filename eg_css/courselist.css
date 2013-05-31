@@ -1,0 +1,198 @@
+#course_accordion .hidden {
+	display: none !important;
+}
+
+
+#filter fieldset {
+	padding: 0 10px;
+	margin-bottom: 10px;
+}
+
+
+#filter .checkblock {
+	padding-left: 2px;
+	margin-right: 1px;
+}
+
+#filter input[type="checkbox"] {
+	margin: 3px 0;
+}
+
+#filter .checkblock label{
+	display: inline;
+}
+
+
+#filter .checkblock input {
+	vertical-align: top;
+	margin-right: 2px;
+}
+
+#course_accordion table {
+	width: 100%;
+}
+
+#course_accordion td, #course_accordion th {
+	vertical-align: top;
+}
+
+#course_accordion th.course {
+	width:40%;
+}
+#course_accordion th.award {
+	width:10%;
+}
+#course_accordion th.level {
+	width:10%;
+}
+#course_accordion th.providers {
+	width:40%;
+}
+#course_accordion h4 {
+	margin: 5px 0;
+	font-weight: normal;
+	cursor: pointer;
+	color: #999;
+}
+
+#course_accordion h4.closed:before {
+	font-family: 'entypo';
+	content: "\e0cf"; /*right*/
+}
+
+#course_accordion h4.opened:before {
+	font-family: 'entypo';
+	content: "\e0cd"; /*down*/
+}
+
+#course_accordion .ui-icon {
+	display: inline-block;
+}
+
+#course_accordion .award_body {
+	display: inline-block;
+	border-bottom: 1px #888 dotted;
+	cursor: pointer;
+}
+
+#course_accordion .award_level {
+	border: 1px solid #777;
+	padding: 1px 3px;
+	border-radius: 10px;
+	margin-right:2px;
+}
+	/*ab_tooltip styles*/
+#course_accordion .popover_content_wrapper .awarder_thumb {
+	width: 100px;
+}
+
+.popover_content_wrapper {
+	display: none;
+}
+
+a.ab_title {
+	display: inline-block;
+	color: #333 !important;
+}
+#course_accordion .open_modal{
+	cursor: pointer;
+	text-decoration: underline;
+}
+#course_accordion .provider {
+	display: block;
+}
+
+/*modal styles*/
+
+.modal_window .modal-body {
+	overflow: visible;
+
+}
+
+.modal_window p {
+	margin-bottom: 10px;
+}
+
+p.also_sent  {
+	float: left;
+	width: 320px;
+	padding: 0;
+	margin: 0;
+	text-align: left;
+}
+
+.input-prepend input {
+	width: 170px;
+}
+
+select.sender_company_size {
+	width: 184px;
+}
+
+.modal_window .add-on {
+	width: 100px;
+}
+
+.modal_window .self_send {
+	margin-top: 0;
+}
+
+/*.modal_window label {
+	display: block;
+	cursor: auto;
+}
+*/
+.modal_window label.inline {
+	display: inline;
+}
+
+.modal_window label.strong {
+	font-weight: bold;
+}
+
+/*.modal_window input[type="text"], .modal_window textarea {
+	padding: 3px;
+	width: 80%;
+}*/
+
+.modal_window legend {
+	text-decoration: underline;
+	font-size: 1em;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+
+.modal_window form {
+	float: left;
+	width: 59%;
+	margin-bottom: 5px;
+}
+.modal_window form {
+	border-right: 1px dotted #ccc;
+}
+.modal_window .providers {
+	width: 39%;
+	float: right;
+	display: inline;
+}
+
+.modal_window .providers h5 {
+	font-size: 1em;
+	font-weight: bold;
+	text-decoration: underline;
+	margin-top: 5px;
+}
+
+.modal_window .error_msg {
+	display:none;
+}
+.modal_window .ajaxsent {
+	display: none;
+}
+.modal_window .required {
+	color: 
+}
+
+.modal_window .modal-footer {
+	clear: both;
+}
