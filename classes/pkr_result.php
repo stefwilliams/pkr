@@ -10,43 +10,76 @@ class Pkr_Result {
 	public $rebuy_flags = 0;
 	public $set_by;
 	public $last_nonce;
-	// public $all_league_players = array();
 	public $players_playing = array();
 	public $players_not_playing = array();
-	public $player_positions = array(
-		// 'position' => '',
-		// 'display_name' => '',
-		// 'user_id' => '',
-		// 'killer_name' => '',
-		// 'killer_id' => '',
-		// 'rebuy' => 0,
-		// 'money_won' => 0,
-		// 'money_lost' => '',
-		// 'comment' => '',
-		);
+	public $player_positions = array();
 
-	public function __construct($event_id) {
+
+	public function __construct($event_id, $buy_in) {
+
 		if ($_REQUEST['action'] == 'reset_game') {
 			$event_id = $_REQUEST['event_id'];
+			$buy_in = $_REQUEST['buy_in'];
 			unset($this->set_by);
 			unset($this->in_progress);
 			unset($this->rebuy_flags);
 			unset($this->players_playing);
 			unset($this->players_not_playing);
-			unset($this->player_positions);
+			unset($this->player_positions);		
+			$this->buy_in_price = $buy_in;
 		}
 		$all_players = array();
 		$all_players = $this->pkr_all_players();
+
 
 		$this->league_id = bp_get_group_id();
 		$this->event_id = $_REQUEST['event_id'];
 		$this->players_playing = $all_players['players_playing'];
 		$this->players_not_playing = $all_players['players_not_playing'];
 		$this->set_by[time()] = "construct";
-		
 		// $_SESSION['pkr_game_'.$this->event_id] = $this;
 	}
 
+	public function route_request() {
+			$this->save_to_session();
+// echo count($this->players_playing);
+// echo $this->in_progress;
+
+		if ($_REQUEST['action'] == 'modify_list') {
+			$this->modify_player_list();
+			return;
+		}
+		elseif ($_REQUEST['action'] == 'reset_game') {
+			// $event_id = $_REQUEST['event_id'];
+			// $buy_in = $_REQUEST['buy_in'];
+			$this->__construct($event_id, $buy_in);
+			$this->game_in_progress();
+			return;
+		}
+		elseif ($_REQUEST['action'] == 'register_and_book') {
+			$this->register_and_book();
+			return;
+		}
+		elseif ($_REQUEST['action'] == 'start_game') {
+			$this->game_in_progress();
+			return;
+		}
+		elseif ($_REQUEST['action'] == "eliminated") {
+			$this->eliminated();
+			return;
+		}
+		elseif ($_REQUEST['action'] == 'eliminate') {
+			$this->eliminate();
+			return;
+		}
+		else {
+			$this->show_player_confirm_list();
+		}
+	}
+
+	public function save_to_session() {
+		$_SESSION['pkr_game_'.$this->event_id] = $this;
+	}
 //puts all currently booked members into 'players_playing' and all other league members into 'players_not_playing'
 
 	public function pkr_all_players() {
@@ -84,7 +117,8 @@ class Pkr_Result {
 	public function modify_player_list() {
 		global $EM_Booking;
 		$ticket_id = $_POST['ticket_id'];
-		$ticket_price = $_POST['ticket_price'];
+		$buy_in = $_POST['buy_in'];
+
 		$people_to_add = array();
 		$people_to_add = $_POST['add_player'];
 		$people_to_remove = array();
@@ -205,7 +239,7 @@ class Pkr_Result {
 		}
 
 		$ticket_id = $_POST['ticket_id'];
-		$ticket_price = $_POST['ticket_price'];
+		$buy_in = $_POST['buy_in'];
 
 		$event_id = $this->event_id;
 
@@ -234,10 +268,17 @@ class Pkr_Result {
 	}
 
 	public function game_in_progress() {
+		if ((count($this->players_playing) == 0) && ($this->in_progress == 1) && ($_REQUEST['action'] != 'reset_game')) {
+			$this->finalise_results();
+			return;
+		}
+
+		echo "<h4>Editing Game Results</h4>";
+		echo "<p>Click players' names to eliminate them from the game...</p>";
 		$this->in_progress = 1;
 		$this->set_by[time()] = "game_in_progress";
-// print_r($_POST);
-		$this->buy_in_price = $_POST['ticket_price'];		
+// print_r($_REQUEST);
+		$this->buy_in_price = $_REQUEST['buy_in'];		
 		$players_playing = $this->players_playing;
 		$players_out = $this->player_positions;
 		$num_positions = $players_out[0]['position'];
@@ -256,7 +297,7 @@ class Pkr_Result {
 		echo '<ul class="league-members attending" style="list-style:none;">';
 		if ($players_playing) {
 			foreach ($players_playing as $player_id => $player) {
-				echo '<li>'.get_avatar($player_id, 25).'<a style="border:none;" href="?action=eliminate&amp;player_id='.$player_id.'&amp;event_id='.$this->event_id.'&amp;ticket_price='.$this->buy_in_price.'">'
+				echo '<li>'.get_avatar($player_id, 25).'<a style="border:none;" href="?action=eliminate&amp;player_id='.$player_id.'&amp;event_id='.$this->event_id.'&amp;buy_in='.$this->buy_in_price.'">'
 				.'&nbsp;'. 
 				$player['display_name']
 				.'&nbsp;</a>';
@@ -321,14 +362,15 @@ class Pkr_Result {
 
 		echo "</div>";
 
-		echo "<div style='width:100%;clear:both;text-align:center;'><a href='?action=reset_game&amp;event_id=".$this->event_id."'>Reset game</a></div>";
+		echo "<div style='width:100%;clear:both;text-align:center;'><a href='?action=reset_game&amp;event_id=".$this->event_id."&amp;buy_in=".$this->buy_in_price."'>Reset game</a></div>";
 		$_SESSION['pkr_game_'.$this->event_id] = $this;
-		
-
 		return;
 	}
 
 	public function eliminate() {
+		$player_id = $_REQUEST['player_id'];
+		$userdata = get_userdata( $player_id );
+		echo "<h4>Eliminating Player: ".$userdata->display_name."</h4>";
 		// echo "<pre style='font-size:x-small;'>";
 		// echo "eliminate (incoming)<br />";
 		// echo "this<br />";
@@ -344,7 +386,7 @@ class Pkr_Result {
 		// echo "</pre>";
 
 		$eliminated = $_REQUEST['player_id'];
-		$buy_in_price = $_REQUEST['ticket_price'];
+		$buy_in_price = $_REQUEST['buy_in'];
 		// print_r($eliminated);
 		//remove the person just eliminated
 
@@ -364,7 +406,7 @@ class Pkr_Result {
 			<input type="hidden" name="nonce" value="<?php echo $nonce; ?>">
 			<input type="hidden" name="action" value="eliminated">
 			<input type="hidden" name="player_id" value="<?php echo $eliminated ?>">
-			<input type="hidden" name="ticket_price" value="<?php echo $buy_in_price ?>">
+			<input type="hidden" name="buy_in" value="<?php echo $buy_in_price ?>">
 			<p>
 				<label for="eliminated_by">Head taken by:</label>
 				<select name="eliminated_by">
@@ -406,7 +448,6 @@ class Pkr_Result {
 		$last_nonce = $this->last_nonce;
 
 		if ($nonce == $last_nonce) {
-			// print_r('refresh detected - ignore');
 			$refreshed = true;
 		}
 		
@@ -428,7 +469,7 @@ class Pkr_Result {
 		}
 		
 		$comment = esc_textarea($_REQUEST['comment']);
-		$money_lost = $_REQUEST['ticket_price'];
+		$money_lost = $_REQUEST['buy_in'];
 
 		$this->in_progress = 1;
 		$this->buy_in_price = $money_lost;
@@ -513,32 +554,88 @@ class Pkr_Result {
 		return;
 	}
 
+	public function finalise_results() {
+		$positions = $this->player_positions;
+		$total_pot = count($positions) * $this->buy_in_price;
+		$finalise_error = NULL;
+		$max_win = $total_pot;
+		$total_winnings = 0;
+
+		//check that position is first value in array before sorting
+		$key_pos = array_search('position', array_keys($positions[0]));
+		if ($key_pos == 0) {
+			//sort by positions (as it is the first value)
+			array_multisort($positions);
+		}
+		else {
+			$finalise_error = 'positions_array';
+			print_r("SYSTEM ERROR! Someone's broken the positions array!");
+		}
+
+		
+		foreach ($positions as $position) {	
+			$total_winnings = $total_winnings + $position['money_won'];
+			$money_won = $position['money_won'];
+			if ($money_won > $max_win) {
+				$finalise_error = 'positions_mismatch';
+				//hopefully gets position of the key that has the error...
+				$position_error = key($positions);
+				print_r('PE:'.$position_error);
+			}
+			$max_win = $position['money_won'];
+		}
+
+		if ($finalise_error) {
+			echo "<h5>Error</h5>";
+		}
+
+		if ($finalise_error == 'positions_mismatch') {
+			echo "<p>Positions and money won do not match.</p>";
+		}
+
+		if ($total_winnings != $total_pot) {
+			$finalise_error = 'winnings_mismatch';
+			echo "<p>Total winnings (&pound;".$total_winnings.") do not match total pot (&pound;".$total_pot."). </p><p> Please check each player's winnings.</p>";
+		}
+
+		//output results list
+		echo "<ol>";
+
+		foreach ($positions as $position) {
+			$money_won = $position['money_won'];
+			if (($money_won == $last_pos_won) && ($money_won > 0)) {
+				$position['position'] = $position['position'] - 1;
+			}
+
+			echo "<li value=".$position['position'].">";
+			echo $position['display_name'];
+			echo "</li>";
+
+			$last_pos_won = $money_won;
+		}
+
+
+		echo "</ol>";
+
+		// echo $total_winnings;
+		print_r("$positions:");
+		echo "<pre>";
+		print_r($positions);
+		echo "</pre>";
+
+		print_r("SESSION:");
+		echo "<pre>";
+		print_r($_SESSION);
+		echo "</pre>";
+	}
+
 
 	public function show_player_confirm_list() {
 		global $EM_Event;
-		$this->set_by[time()] = "show_player_confirm_list I";		
-		if ($_REQUEST['action'] == 'modify_list') {
-			$this->modify_player_list();
-			return;
-			// $players_array = $this->playing_and_not_yet_playing();
-		}
-		if ($_REQUEST['action'] == 'reset_game') {
-			$this->__construct($event_id);
-			return;
-		}
-		if ($_REQUEST['action'] == 'register_and_book') {
-			$this->register_and_book();
-			return;
-		}
-		if ($_REQUEST['action'] == 'start_game') {
-			$this->game_in_progress();
-			return;
-		}
-		if ($_REQUEST['action'] == "eliminated") {
-			$this->eliminated();
-			return;
-		}
-		$this->set_by[time()] = "show_player_confirm_list II";
+		echo "<h4>Confirm players for: ".$EM_Event->event_name."</h4>";
+		// $this->set_by[time()] = "show_player_confirm_list I";		
+
+		// $this->set_by[time()] = "show_player_confirm_list II";
 		$players_playing = $this->players_playing;
 		$players_not_playing = $this->players_not_playing;
 		// $this->players_array = $this->playing_and_not_yet_playing();
@@ -555,16 +652,15 @@ class Pkr_Result {
 		else {
 			reset($tickets);
 			$ticket_id = key($tickets);
-			$ticket_price = $tickets[$ticket_id]->ticket_price;
+			$buy_in = $tickets[$ticket_id]->ticket_price;
 		}
 
-		$this->buy_in_price = $ticket_price;
 		// print_r($ticket_price);
 
 		?>
 		<?php if (count($players_playing) > 1) {?>
 		<form method="POST" class="start-game">
-			<input type="hidden" name="ticket_price" value="<?php echo $ticket_price ?>" />				
+			<input type="hidden" name="buy_in" value="<?php echo $buy_in ?>" />				
 			<input type="hidden" name="action" value="start_game" />
 			<button type="submit" class="go big" style="font-size:initial; float:right; color: green; width:100%;">Start game with <strong><?php echo count($players_playing); ?></strong> players</button>
 		</form>
@@ -574,7 +670,7 @@ class Pkr_Result {
 		<table class="players">
 			<?php if (is_integer($ticket_id)) { ?>
 			<input type="hidden" name="ticket_id" value="<?php echo $ticket_id ?>" />
-			<input type="hidden" name="ticket_price" value="<?php echo $ticket_price ?>" />				
+			<input type="hidden" name="buy_in" value="<?php echo $buy_in ?>" />				
 			<input type="hidden" name="action" value="modify_list" />
 			<?php
 		}
@@ -656,7 +752,7 @@ class Pkr_Result {
 	<table>
 		<tr>
 			<input type="hidden" name="ticket_id" value="<?php echo $ticket_id ?>" />
-			<input type="hidden" name="ticket_price" value="<?php echo $ticket_price ?>" />
+			<input type="hidden" name="buy_in" value="<?php echo $buy_in ?>" />
 			<input type="hidden" name="action" value="register_and_book" />				
 			<th>Register and book a new league member</th>
 		</tr>

@@ -26,29 +26,5 @@ $event = em_get_event($event_id);
 ?>
 
 <?php
-if ($_REQUEST['action'] == 'start_game') { ?>
-<h4>Editing Results for: <?php echo $event->event_name; ?></h4>
-<?php
-	$pkr_result->game_in_progress();
-}
-
-elseif ($_REQUEST['action'] == 'eliminate') { 
-	$player_id = $_REQUEST['player_id'];
-	$userdata = get_userdata( $player_id );
-	?>
-<h4>Eliminating player: <?php echo $userdata->display_name; ?></h4>
-<?php
-	$pkr_result->eliminate();
-}
-
-else { ?>
-<h4>Confirm players for: <?php echo $event->event_name; ?></h4>
-<?php
-	$pkr_result->show_player_confirm_list();
-}
-
-
-
-
-
+	$pkr_result->route_request();
 ?>
