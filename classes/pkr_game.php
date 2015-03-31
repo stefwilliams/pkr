@@ -1,6 +1,6 @@
 <?php
 
-class Pkr_Result {
+class Pkr_Game {
 
 	public $league_id;
 	public $event_id;
@@ -16,18 +16,18 @@ class Pkr_Result {
 	public $player_positions = array();
 
 
-	public function __construct($event_id, $buy_in) {
+	public function __construct() {
 
 		if ($_REQUEST['action'] == 'reset_game') {
 			$event_id = $_REQUEST['event_id'];
-			$buy_in = $_REQUEST['buy_in'];	
-			$this->buy_in_price = $buy_in;
+			// $buy_in = number_format($_REQUEST['buy_in'], 2);	
+			// $this->buy_in_price = $buy_in;
 			// unset($this->set_by);
 			// unset($this->in_progress);
 			// unset($this->rebuy_flags);
 			// unset($this->total_rebuy_amount);
 			// unset($this->players_playing);
-			// unset($this->players_not_playing);
+			// // unset($this->players_not_playing);
 			// unset($this->player_positions);	
 			unset($_SESSION['pkr_game_'.$event_id]);
 		}
@@ -56,7 +56,7 @@ class Pkr_Result {
 		elseif ($_REQUEST['action'] == 'reset_game') {
 			// $event_id = $_REQUEST['event_id'];
 			// $buy_in = $_REQUEST['buy_in'];
-			$this->__construct($event_id, $buy_in);
+			$this->__construct();
 			$this->game_in_progress();
 			return;
 		}
@@ -85,7 +85,7 @@ class Pkr_Result {
 		$_SESSION['pkr_game_'.$this->event_id] = $this;
 	}
 //puts all currently booked members into 'players_playing' and all other league members into 'players_not_playing'
-
+//'players_not_playing' array is irrelevant and has been commented out, (for now)
 	public function pkr_all_players() {
 		global $EM_Event, $bp;
 		$all_players = array();
@@ -121,7 +121,7 @@ class Pkr_Result {
 	public function modify_player_list() {
 		global $EM_Booking;
 		$ticket_id = $_POST['ticket_id'];
-		$buy_in = $_POST['buy_in'];
+		// $buy_in = number_format($_POST['buy_in'], 2);
 
 		$people_to_add = array();
 		$people_to_add = $_POST['add_player'];
@@ -243,7 +243,7 @@ class Pkr_Result {
 		}
 
 		$ticket_id = $_POST['ticket_id'];
-		$buy_in = $_POST['buy_in'];
+		// $buy_in = $_POST['buy_in'];
 
 		$event_id = $this->event_id;
 
@@ -284,7 +284,7 @@ class Pkr_Result {
 		$this->in_progress = 1;
 		$this->set_by[time()] = "game_in_progress";
 // print_r($_REQUEST);
-		$this->buy_in_price = $_REQUEST['buy_in'];		
+		$this->buy_in_price = number_format($_REQUEST['buy_in'],2);		
 		$players_playing = $this->players_playing;
 		$players_out = $this->player_positions;
 		$num_positions = $players_out[0]['position'];
@@ -370,6 +370,15 @@ class Pkr_Result {
 
 		echo "<div style='width:100%;clear:both;text-align:center;'><a href='?action=reset_game&amp;event_id=".$this->event_id."&amp;buy_in=".$this->buy_in_price."'>Reset game</a></div>";
 		// $_SESSION['pkr_game_'.$this->event_id] = $this;
+
+		echo "<pre style='font-size:x-small;'>";
+		// echo "eliminate (before set new session)<br />";
+		// echo "this<br />";
+		print_r($this);
+		// echo "SESSION<br />";
+		// print_r($_SESSION);
+		echo "</pre>";		
+
 		return;
 	}
 
@@ -468,7 +477,7 @@ class Pkr_Result {
 		
 		$eliminated = $_REQUEST['player_id'];
 		$killed_by = $_REQUEST['eliminated_by'];
-		if (is_numeric($_REQUEST['rebuy_amount'])) {
+		if (!$refreshed && is_numeric($_REQUEST['rebuy_amount'])) {
 			$rebuy = 1;
 			$rebuys_to_date = $this->rebuy_flags;
 			$this->rebuy_flags = $rebuys_to_date + $rebuy;
@@ -556,7 +565,7 @@ class Pkr_Result {
 
 			//killed_by = 0 is 'no-one', so don't add to still playing array
 			if ($killed_by != 0) {
-				$this->players_playing[$killed_by]['heads_taken'][$eliminated] = $this->players_playing[$eliminated]['display_name'];
+				$this->players_playing[$killed_by]['heads_taken'][][$eliminated] = $this->players_playing[$eliminated]['display_name'];
 			}
 			if (!$rebuy && !$refreshed) {
 				unset($this->players_playing[$eliminated]);
@@ -700,105 +709,104 @@ class Pkr_Result {
 			<?php
 		}
 		?>
-		<thead>
+			<thead>
+				<tr>
+					<th><?php _e('Currently registered players', 'pkr_stats'); ?></th>
+					<th><?php _e('Add more players', 'pkr_stats'); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+						<?php
+						if( count($players_playing) > 0 ){
+							?>
+							<ul class="league-members attending" style="list-style:none;">
+								<?php
+								foreach( $players_playing as $player_id => $player){ 
+									?>
+									<li>
+										<input type="checkbox" name="remove_booking[]" value="<?php echo $player['booking_id']; ?>" />
+										<?php echo get_avatar($player_id, 25)
+										.'&nbsp;'. 
+										$player['display_name']
+										.'&nbsp;'
+										?>
+									</li>
+									<?php 
+								}
+								?>
+							</ul>
+							<?php
+						}
+						else {
+							echo "No players";
+						}
+						?>
+					</td>
+					<td>
+						<?php
+						if( count($players_not_playing) > 0 ){
+							?>
+							<ul class="league-members not-attending" style="list-style:none;">
+								<?php
+								foreach( $players_not_playing as $player_id => $player){ 
+									?>
+									<li>
+										<input type="checkbox" name="add_player[]" value="<?php echo $player_id; ?>" />
+										<?php echo get_avatar($player_id, 25)
+										.'&nbsp;'. 
+										$player['display_name']
+										.'&nbsp;'
+										?>
+									</li>
+									<?php 
+								}
+								?>
+							</ul>
+							<?php
+						}
+						else {
+							echo "No players";
+						}
+						?>						
+					</td>
+				</tr>
+			</tbody>
+			<tfoot>
+				<tr>
+					<td colspan="2">
+						<button type="submit">Add or remove players</button>
+					</td>
+				</tr>
+			</tfoot>
+		</table>
+	</form>
+	<form method="post" class="register-new">
+		<table>
 			<tr>
-				<th><?php _e('Currently registered players', 'pkr_stats'); ?></th>
-				<th><?php _e('Add more players', 'pkr_stats'); ?></th>
+				<input type="hidden" name="ticket_id" value="<?php echo $ticket_id ?>" />
+				<input type="hidden" name="buy_in" value="<?php echo $buy_in ?>" />
+				<input type="hidden" name="action" value="register_and_book" />				
+				<th>Register and book a new league member</th>
 			</tr>
-		</thead>
-		<tbody>
 			<tr>
 				<td>
-					<?php
-					if( count($players_playing) > 0 ){
-						?>
-						<ul class="league-members attending" style="list-style:none;">
-							<?php
-							foreach( $players_playing as $player_id => $player){ 
-								?>
-								<li>
-									<input type="checkbox" name="remove_booking[]" value="<?php echo $player['booking_id']; ?>" />
-									<?php echo get_avatar($player_id, 25)
-									.'&nbsp;'. 
-									$player['display_name']
-									.'&nbsp;'
-									?>
-								</li>
-								<?php 
-							}
-							?>
-						</ul>
-						<?php
-					}
-					else {
-						echo "No players";
-					}
-					?>
-				</td>
-				<td>
-					<?php
-					if( count($players_not_playing) > 0 ){
-						?>
-						<ul class="league-members not-attending" style="list-style:none;">
-							<?php
-							foreach( $players_not_playing as $player_id => $player){ 
-								?>
-								<li>
-									<input type="checkbox" name="add_player[]" value="<?php echo $player_id; ?>" />
-									<?php echo get_avatar($player_id, 25)
-									.'&nbsp;'. 
-									$player['display_name']
-									.'&nbsp;'
-									?>
-								</li>
-								<?php 
-							}
-							?>
-						</ul>
-						<?php
-					}
-					else {
-						echo "No players";
-					}
-					?>						
+					<input type="text" name="user_name" placeholder="* Username" />
+					<input type="text" name="first_name" placeholder="* First Name" />
+					<input type="text" name="last_name" placeholder="* Surname" /
+					>
+					<input type="text" name="email" placeholder="* Email address" /
+					>
+					<p>An auto-generated password will be emailed to the new user.</p>
+					<button type="submit">Register and book</button>
+
+
 				</td>
 			</tr>
-		</tbody>
-		<tfoot>
-			<tr>
-				<td colspan="2">
-					<button type="submit">Add or remove players</button>
-				</td>
-			</tr>
-		</tfoot>
-	</table>
-</form>
-<form method="post" class="register-new">
-	<table>
-		<tr>
-			<input type="hidden" name="ticket_id" value="<?php echo $ticket_id ?>" />
-			<input type="hidden" name="buy_in" value="<?php echo $buy_in ?>" />
-			<input type="hidden" name="action" value="register_and_book" />				
-			<th>Register and book a new league member</th>
-		</tr>
-		<tr>
-			<td>
-				<input type="text" name="user_name" placeholder="* Username" />
-				<input type="text" name="first_name" placeholder="* First Name" />
-				<input type="text" name="last_name" placeholder="* Surname" /
-				>
-				<input type="text" name="email" placeholder="* Email address" /
-				>
-				<p>An auto-generated password will be emailed to the new user.</p>
-				<button type="submit">Register and book</button>
+		</table>
 
-
-			</td>
-		</tr>
-	</table>
-
-</form>
+	</form>
 <?php
 }
 }
-?>
