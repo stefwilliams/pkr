@@ -18,6 +18,8 @@ $parse = parse_url($this_url);
 $this_url = $parse['scheme'].'://'.$parse['host'].$parse['path'];
 
 
+$add_result_url = $bp->canonical_stack['base_url'] . 'add-result';
+
 
 	$url = $bp->events->link . 'my-events/'; //url to this page
 
@@ -25,7 +27,7 @@ $this_url = $parse['scheme'].'://'.$parse['host'].$parse['path'];
 
 	$event_id  = $_REQUEST['event_id'];
 
-	$order = ( !empty($_REQUEST ['order']) ) ? $_REQUEST ['order']:'ASC';
+	$order = ( !empty($_REQUEST ['order']) ) ? $_REQUEST ['order']:'DESC';
 
 	$limit = ( !empty($_REQUEST['limit']) ) ? $_REQUEST['limit'] : 20;//Default limit
 
@@ -33,7 +35,7 @@ $this_url = $parse['scheme'].'://'.$parse['host'].$parse['path'];
 
 	$offset = ( $page > 1 ) ? ($page-1)*$limit : 0;
 
-	$EM_Events = EM_Events::get( array('group'=>'this','scope'=>'future', 'limit' => 0, 'order' => $order) );
+	$EM_Events = EM_Events::get( array('group'=>'this','scope'=>'all', 'limit' => 0, 'order' => $order) );
 
 	$events_count = count ( $EM_Events );
 
@@ -273,7 +275,7 @@ $this_url = $parse['scheme'].'://'.$parse['host'].$parse['path'];
 
 			<td>
 
-				<a href="<?php echo $this_url ?>?action=add_result&amp;event_id=<?php echo $event->id ?>">Add game result</a>
+				<a href="<?php echo $add_result_url ?>?action=add_result&amp;event_id=<?php echo $event->id ?>">Add game result</a>
 
 				<?php 
 

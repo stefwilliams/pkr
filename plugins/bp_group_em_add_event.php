@@ -14,7 +14,7 @@ class Pkr_Add_Game extends BP_Group_Extension {
             // see https://codex.buddypress.org/developer/group-extension-api/#config
             'slug' => 'add-game',
             'name' => 'Pkr_Game',
-            'nav_item_position' => 30,
+            'nav_item_position' => 50,
             'nav_item_name' => 'Add Game',
             'screens' => array(
                 'edit' => array(
@@ -24,8 +24,7 @@ class Pkr_Add_Game extends BP_Group_Extension {
                     // 'submit_text' => 'Submit, suckaz',
                 ),
                 'create' => array(
-                    'name' => 'Ruleset',
-                    'position' => 100,
+                    'enabled' => false,
                 ),
             ),
         );
@@ -80,16 +79,6 @@ class Pkr_Add_Game extends BP_Group_Extension {
      *   * admin_screen()
      *   * admin_screen_save()
      */
-    function create_screen( $group_id = NULL ) {
-        $ruleset = groups_get_groupmeta( $group_id, 'pkr_group_ruleset' );
- 
-        ?>
-        <?php _e('Game scoring ruleset.
-                        Choose the type of game and scoring mechanism that will apply to this league. 
-                        This cannot be changed once the league is created. In order to use a different ruleset, you will need to create a new league.'); ?>
-        Save your plugin setting here: <input type="text" name="pkr_group_ruleset" value="<?php echo esc_attr( $ruleset ) ?>" />
-        <?php
-    }
  
 }
 bp_register_group_extension( 'Pkr_Add_Game' );

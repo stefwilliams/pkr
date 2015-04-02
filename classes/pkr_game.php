@@ -310,8 +310,8 @@ class Pkr_Game {
 				echo "<br /><span style='font-size:small;'>Heads: ";
 				if (count($player['heads_taken']) > 0) {
 					echo count($player['heads_taken']).'&nbsp;';
-					foreach ($player['heads_taken'] as $defeated_id => $defeated_player) {
-						echo get_avatar($defeated_id, 15).'&nbsp;';
+					foreach ($player['heads_taken'] as $defeated_player) {
+						echo get_avatar(key($defeated_player), 15).'&nbsp;';
 					}
 				}
 				else { echo "0";}

@@ -1,5 +1,6 @@
 <?php
 require_once('plugins/bp_rename.php' );
+require_once('plugins/bp_group_pkr_add_result.php' );
 require_once('plugins/bp_group_em_add_event.php' );
 
 require_once('cpt/pkr_result.php' );
