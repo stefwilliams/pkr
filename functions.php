@@ -6,8 +6,8 @@ require_once('plugins/bp_group_em_add_event.php' );
 require_once('cpt/pkr_result.php' );
 require_once('cpt/pkr_ruleset.php' );
 
-require_once('classes/pkr_player.php' );
 require_once('classes/pkr_game.php' );
+// require_once('classes/pkr_game_setup.php' );
 require_once('classes/pkr_result.php' );
 // require_once('cpt/pkr_venue.php' );
 // require_once('cpt/pkr_league.php' );

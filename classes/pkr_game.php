@@ -2,13 +2,14 @@
 
 class Pkr_Game {
 
-	public $league_id;
-	public $event_id;
+	public static $league_id;	
+	public static $starting_pot;
+	public static $event_id;
 	public $buy_in_price;
 	public $in_progress = 0;
 	public $is_complete = 0;
 	public $rebuy_flags = 0;
-	public $total_rebuy_amount;
+	public $total_rebuy_amount = 0;
 	public $set_by;
 	public $last_refresh_nonce;
 	public $players_playing = array();
@@ -16,37 +17,39 @@ class Pkr_Game {
 	public $player_positions = array();
 
 
-	public function __construct() {
+	public function __construct($league_id, $event_id) {
 
 		if ($_REQUEST['action'] == 'reset_game') {
-			$event_id = $_REQUEST['event_id'];
-			// $buy_in = number_format($_REQUEST['buy_in'], 2);	
-			// $this->buy_in_price = $buy_in;
-			// unset($this->set_by);
-			// unset($this->in_progress);
-			// unset($this->rebuy_flags);
-			// unset($this->total_rebuy_amount);
-			// unset($this->players_playing);
-			// // unset($this->players_not_playing);
-			// unset($this->player_positions);	
+			// $event_id = $_REQUEST['event_id'];
+			// $event_id = $this->event_id;
 			unset($_SESSION['pkr_game_'.$event_id]);
 		}
+		echo "<pre>construct";
+		print_r($_REQUEST['buy_in']);
+		echo "</pre>";
+		$this->buy_in_price = $_REQUEST['buy_in'];
+		
+		
 		$all_players = array();
 		$all_players = $this->pkr_all_players();
+		$this->event_id = $event_id;
+		$this->league_id = $league_id;
+// $this->pass1 = $event_id;
 
-
-		$this->league_id = bp_get_group_id();
-		$this->event_id = $_REQUEST['event_id'];
+		// $this->league_id = bp_get_group_id();
+		// $this->event_id = $_REQUEST['event_id'];
 		$this->players_playing = $all_players['players_playing'];
 		$this->players_not_playing = $all_players['players_not_playing'];
-		$this->set_by[time()] = "construct";
-		// $_SESSION['pkr_game_'.$this->event_id] = $this;
+		$this->set_by[microtime()] = "construct:pp:".count($this->players_playing).":bi:".$this->buy_in_price;
+		$this->set_starting_pot();
+	}
+
+	public function __destruct() {
+		$this->set_by[microtime()] = "destruct";
 	}
 
 	public function route_request() {
-			$this->save_to_session();
-// echo count($this->players_playing);
-// echo $this->in_progress;
+		$this->save_to_session();
 
 		if ($_REQUEST['action'] == 'modify_list') {
 			$this->modify_player_list();
@@ -54,9 +57,7 @@ class Pkr_Game {
 			return;
 		}
 		elseif ($_REQUEST['action'] == 'reset_game') {
-			// $event_id = $_REQUEST['event_id'];
-			// $buy_in = $_REQUEST['buy_in'];
-			$this->__construct();
+			$this->__construct($this->league_id, $this->event_id);
 			$this->game_in_progress();
 			return;
 		}
@@ -65,6 +66,7 @@ class Pkr_Game {
 			return;
 		}
 		elseif ($_REQUEST['action'] == 'start_game') {
+
 			$this->game_in_progress();
 			return;
 		}
@@ -82,7 +84,16 @@ class Pkr_Game {
 	}
 
 	public function save_to_session() {
+		$this->set_by[microtime()] = "save_to_session";
 		$_SESSION['pkr_game_'.$this->event_id] = $this;
+	}
+
+	public function set_starting_pot() {	
+		$starting_pot = number_format((count($this->players_playing) * $this->buy_in_price), 2);
+		$this->set_by[microtime()] = "set_starting_pot@".$starting_pot;
+		print_r("ssp");
+		print_r($_REQUEST);
+		$this->starting_pot = $starting_pot;
 	}
 //puts all currently booked members into 'players_playing' and all other league members into 'players_not_playing'
 //'players_not_playing' array is irrelevant and has been commented out, (for now)
@@ -183,7 +194,7 @@ class Pkr_Game {
 				unset($this->players_playing[$person_id_to_move]);
 			}
 
-			$this->set_by[time()] = "pkr_em_delete_single_booking";
+			$this->set_by[microtime()] = "pkr_em_delete_single_booking";
 
 			// $_SESSION['pkr_game_'.$this->event_id] = $this;
 			return true;
@@ -220,7 +231,7 @@ class Pkr_Game {
 				unset($this->players_not_playing[$person_id]);
 			}
 
-			$this->set_by[time()] = "pkr_em_add_single_booking";		
+			$this->set_by[microtime()] = "pkr_em_add_single_booking";		
 
 			// $_SESSION['pkr_game_'.$this->event_id] = $this;
 			return true;
@@ -262,7 +273,19 @@ class Pkr_Game {
 				return;
 			}
 			else {
-				echo "Something might have gone wrong...";
+				echo "Something went wrong: Please print this screen and send it to the devs:";
+				echo "<pre>";
+				echo "<br />$add_name<br />";
+				print_r($add_name);
+				echo "<br />$add_surname<br />";
+				print_r($add_surname);
+				echo "<br />$add_dsplayname<br />";
+				print_r($add_dsplayname);
+				echo "<br />$group_add<br />";
+				print_r($group_add);
+				echo "<br />$booked<br />";
+				print_r($booked);				
+				echo "</pre>";
 				return;
 			}			
 		}
@@ -275,16 +298,17 @@ class Pkr_Game {
 
 	public function game_in_progress() {
 		if ((count($this->players_playing) == 0) && ($this->in_progress == 1) && ($_REQUEST['action'] != 'reset_game')) {
-			$this->finalise_results();
+			$this->results = new Pkr_Result($this->buy_in_price, $this->rebuy_flags, $this->total_rebuy_amount, $this->player_positions);
+			// $this->finalise_results();
 			return;
 		}
 
 		echo "<h4>Editing Game Results</h4>";
 		echo "<p>Click players' names to eliminate them from the game...</p>";
 		$this->in_progress = 1;
-		$this->set_by[time()] = "game_in_progress";
+		$this->set_by[microtime()] = "game_in_progress";
 // print_r($_REQUEST);
-		$this->buy_in_price = number_format($_REQUEST['buy_in'],2);		
+		// $this->buy_in_price = number_format($_REQUEST['buy_in'],2);		
 		$players_playing = $this->players_playing;
 		$players_out = $this->player_positions;
 		$num_positions = $players_out[0]['position'];
@@ -382,9 +406,9 @@ class Pkr_Game {
 		return;
 	}
 
-	public function eliminate() {
-		$player_id = $_REQUEST['player_id'];
-		$userdata = get_userdata( $player_id );
+	public function eliminate($errors = array()) {
+		$eliminated = $_REQUEST['player_id'];
+		$userdata = get_userdata( $eliminated );
 		echo "<h4>Eliminating Player: ".$userdata->display_name."</h4>";
 		// echo "<pre style='font-size:x-small;'>";
 		// echo "eliminate (incoming)<br />";
@@ -394,13 +418,12 @@ class Pkr_Game {
 		// print_r($_SESSION);
 		// echo "</pre>";
 		$this->in_progress = 1;
-		$this->set_by[time()] = "eliminate";
+		$this->set_by[microtime()] = "eliminate";
 		// echo "<pre style='font-size:x-small;'>";
 		// print_r($this);
 		// print_r($_REQUEST);
 		// echo "</pre>";
-
-		$eliminated = $_REQUEST['player_id'];
+		// $eliminated = $_REQUEST['player_id'];
 		$buy_in_price = $_REQUEST['buy_in'];
 		if (is_numeric($buy_in_price) && ($buy_in_price > 0)) {
 			$full_rebuy = number_format($buy_in_price, 2);
@@ -410,6 +433,7 @@ class Pkr_Game {
 		//remove the person just eliminated
 
 		$remaining_players = $this->players_playing;
+		$max_win = ($this->starting_pot + $this->total_rebuy_amount) / count($remaining_players);
 		unset($remaining_players[$eliminated]);
 		// echo "<pre style='font-size:x-small;'>";
 		// // print_r($players);
@@ -421,7 +445,7 @@ class Pkr_Game {
 			$refresh_nonce = wp_create_nonce( 'eliminate'.$eliminated.time() );
 			// $this->last_refresh_nonce = $refresh_nonce;
 			?>
-
+			<input type="hidden" name="max_win" value="<?php echo $max_win; ?>">
 			<input type="hidden" name="refresh_nonce" value="<?php echo $refresh_nonce; ?>">
 			<input type="hidden" name="action" value="eliminated">
 			<input type="hidden" name="player_id" value="<?php echo $eliminated ?>">
@@ -436,7 +460,7 @@ class Pkr_Game {
 				</select>
 			</p>
 			<p>
-				<label for="rebuy">Rebuy amount: </label>
+				<label for="rebuy_amount">Rebuy amount: </label>
 				<select name="rebuy_amount">
 					<option value="no">--no rebuy--</option>
 					<option value="<?php echo $half_rebuy?>"><?php echo $half_rebuy?></option>
@@ -466,12 +490,44 @@ class Pkr_Game {
 		return;
 	}
 
+	public function validate_eliminateform() {
+		print_r($_POST);
+		$errors = false;
+		$rebuy = $_POST['rebuy_amount'];
+		$money_won = $_POST['money_won'];
+		$max_win = $_POST['max_win'];
+		$total_pot = $this->starting_pot + $this->total_rebuy_amount;
+		if ($money_won > $max_win) {
+			$errors[0]['field'] = "money_won";
+			$errors[0]['message'] = "Player cannot win this much money in this position";
+			$errors[0]['entered'] = $money_won;
+			# code...
+		}
+		if ($money_won > $total_pot) {
+			$errors[0]['field'] = "money_won";
+			$errors[0]['message'] = "Money won is more than the total pot!";
+			$errors[0]['entered'] = $money_won;
+		}
+		if (($rebuy > 0) && ($money_won > 0)) {
+			$errors[0]['field'] = "rebuy_amount";
+			$errors[0]['message'] = "Cannot win money and rebuy at the same time.";
+			$errors[0]['entered'] = $rebuy;
+		}
+		print_r($errors);
+
+	}
+
 	public function eliminated() {
+		$errors = $this->validate_eliminateform();
+		if ($errors) {
+			$this->eliminate($errors);
+		}
+
 		$refresh_nonce = $_REQUEST['refresh_nonce'];
 		$last_refresh_nonce = $this->last_refresh_nonce;
 
 		if ($refresh_nonce == $last_refresh_nonce) {
-			echo "<h1>REFRESH DETECTED!</h1>";
+			echo "<p>Browser refresh detected - nothing has been updated</p>";
 			$refreshed = true;
 		}
 		
@@ -497,11 +553,19 @@ class Pkr_Game {
 		}
 		
 		$comment = esc_textarea($_REQUEST['comment']);
-		$money_lost = $_REQUEST['buy_in'];
+
+
+		if (!$rebuy) {
+			$money_lost = $_REQUEST['buy_in'];
+		}
+		else {
+			$money_lost = $rebuy_amount;
+		}
+		
 
 		$this->in_progress = 1;
 		$this->buy_in_price = $money_lost;
-		$this->set_by[time()] = "eliminated";
+		$this->set_by[microtime()] = "eliminated";
 
 // echo "<pre>";
 // echo "before rebuy shunt";
@@ -548,9 +612,8 @@ class Pkr_Game {
 			'killer_name' => $this->players_playing[$killed_by]['display_name'],
 			'heads_taken' => $this->players_playing[$eliminated]['heads_taken'],
 			'rebuy' => $rebuy,
-			'rebuy_amount' => $rebuy_amount,
-			'money_won' => $money_won,
-			'money_lost' => $money_lost,
+			'money_won' => number_format($money_won, 2),
+			'money_lost' => number_format($money_lost, 2),
 			'comment' => $comment,
 			);
 		// echo "<pre style='font-size:x-small;'>";
@@ -589,6 +652,7 @@ class Pkr_Game {
 	}
 
 	public function finalise_results() {
+		//all now in new class
 		$positions = $this->player_positions;
 		$total_pot = count($positions) * $this->buy_in_price;
 		$finalise_error = NULL;
@@ -667,9 +731,9 @@ class Pkr_Game {
 	public function show_player_confirm_list() {
 		global $EM_Event;
 		echo "<h4>Confirm players for: ".$EM_Event->event_name."</h4>";
-		// $this->set_by[time()] = "show_player_confirm_list I";		
+		// $this->set_by[microtime()] = "show_player_confirm_list I";		
 
-		// $this->set_by[time()] = "show_player_confirm_list II";
+		// $this->set_by[microtime()] = "show_player_confirm_list II";
 		$players_playing = $this->players_playing;
 		$players_not_playing = $this->players_not_playing;
 		// $this->players_array = $this->playing_and_not_yet_playing();
@@ -686,7 +750,7 @@ class Pkr_Game {
 		else {
 			reset($tickets);
 			$ticket_id = key($tickets);
-			$buy_in = $tickets[$ticket_id]->ticket_price;
+			$buy_in = number_format($tickets[$ticket_id]->ticket_price, 2);
 		}
 
 		// print_r($ticket_price);
@@ -788,7 +852,7 @@ class Pkr_Game {
 				<input type="hidden" name="ticket_id" value="<?php echo $ticket_id ?>" />
 				<input type="hidden" name="buy_in" value="<?php echo $buy_in ?>" />
 				<input type="hidden" name="action" value="register_and_book" />				
-				<th>Register and book a new league member</th>
+				<th>Register a new league member and book them on to this event</th>
 			</tr>
 			<tr>
 				<td>

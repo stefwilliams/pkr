@@ -1,6 +1,6 @@
 <?php
-
-$pkr_game = new Pkr_Game($event_id);
+$league_id = bp_get_group_id();
+$pkr_game = new Pkr_Game($league_id, $event_id);
 if (isset($_SESSION['pkr_game_'.$event_id])) {
 	$pkr_game = $_SESSION['pkr_game_'.$event_id];
 }
